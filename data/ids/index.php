@@ -24,7 +24,7 @@ if (file_exists($sensorsetsFile)) {
         $projectData = array();
         $projectData['name'] = $project;
         $projectData['description'] = $sensor_sets[$project]['description'];
-        $projectData['ids'] = getNodesFromString($sensor_sets[$project]['ids']);;
+        $projectData['ids'] = getNodesFromString($sensor_sets[$project]['ids']);
         $projectData['amount'] = sizeof($projectData['ids']);
 
         $resultSet['project'][$project] = $projectData;
@@ -60,27 +60,34 @@ function getProjects($availableProjects)
  * 
  * retruns array of IDs (integers)
  */
-function getNodesFromString($idsString)
+function getNodesFromString($idsString, $unique = true)
 {
     $idList = array();
     $ids = explode(',', $idsString);
     $ranges = array();
     foreach ($ids as $key => $id) {
+        $id = trim($id);
         if (!empty($id)) {
-            if (!ctype_digit($id)) { // checks if all of the characters are numerical
-                $ranges[] = $id;
-            } else {
+            if (ctype_digit($id)) { // checks if all of the characters are numerical
                 $idList[] = intval($id);
+            } else {
+                $ranges[] = $id;
             }
         }
     }
     foreach ($ranges as $rangeString) {
-        $range = explode('-', $rangeString);
-        for ($id = $range[0]; $id <= $range[1]; $id++) {
-            $idList[] = intval($id);
+        $pattern = '/^(\d+)-(\d+)$/';
+        if (preg_match($pattern, $rangeString, $matches)) {
+            $rmin = intval($matches[1]);
+            $rmax = intval($matches[2]);
+            if ($rmin <= $rmax) {
+                for ($id = $rmin; $id <= $rmax; $id++) {
+                    $idList[] = intval($id);
+                }
+            }
         }
     }
 
     sort($idList, SORT_NUMERIC);
-    return $idList;
+    return $unique ? array_values(array_unique($idList, SORT_NUMERIC)) : $idList;
 }
